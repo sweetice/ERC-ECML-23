@@ -7,7 +7,6 @@ from torch import distributions as pyd
 import random
 
 
-
 def weight_init(m):
     """Custom weight init for Conv2D and Linear layers."""
     if isinstance(m, nn.Linear):
@@ -84,17 +83,12 @@ class DiagGaussianActor(nn.Module):
     def forward(self, obs):
         x = F.relu(self.l1(obs))
         x = F.relu(self.l2(x))
-
         mu, log_std = self.mu_head(x), self.log_std_head(x)
 
-        # constrain log_std inside [log_std_min, log_std_max]
         log_std = torch.tanh(log_std)
-
         log_std = self.log_std_min + 0.5 * (self.log_std_max - self.log_std_min) * (log_std + 1)
         std = log_std.exp()
 
-        # self.outputs['mu'] = mu
-        # self.outputs['std'] = std
 
         dist = SquashedNormal(mu, std)
         return dist

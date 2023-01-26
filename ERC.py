@@ -152,7 +152,7 @@ class ERC():
         with torch.no_grad():
             next_action_dist = self.actor(next_state)
             next_action = next_action_dist.rsample()
-            next_action_log_prob = next_action_dist.log_prob(next_action).sum(-1, keepdim=True)  # TODO: Figureout this line
+            next_action_log_prob = next_action_dist.log_prob(next_action).sum(-1, keepdim=True)
             target_Q1, target_Q2 = self.critic_target(next_state, next_action)
             target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * next_action_log_prob
             target_Q = reward + not_done * self.discount * target_V
@@ -181,7 +181,7 @@ class ERC():
         if self.total_it % self.policy_freq == 0:
             current_action_dist = self.actor(state)
             current_action = current_action_dist.rsample()
-            current_action_log_prob = current_action_dist.log_prob(current_action).sum(-1, keepdim=True)  # TODO: Figure out this line
+            current_action_log_prob = current_action_dist.log_prob(current_action).sum(-1, keepdim=True)
             current_action_Q1, current_action_Q2 = self.critic(state, current_action)
             current_action_Q = torch.min(current_action_Q1, current_action_Q2)
             actor_loss = (self.alpha.detach() * current_action_log_prob - current_action_Q).mean()
