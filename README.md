@@ -5,14 +5,20 @@ The present anonymous repository serves as a guide for reproducing the results o
 The file tree structure of this repository is as follows:
 
 ```bash
-.
-├── ERC.py
+│   ├── ERC.py
+│   ├── __pycache__
+│   │   ├── DQN.cpython-38.pyc
+│   │   └── ERC.cpython-38.pyc
+│   ├── cartpole_average_return.svg
+│   └── main.py
+├── DMControl
+│   ├── ERC.py
+│   ├── main.py
+│   └── utils.py
 ├── README.md
-├── conda_env.yml
-├── main.py
-└── utils.py
+└── conda_env.yml
 
-0 directories, 5 files
+3 directories, 11 files
 ```
 
 
@@ -39,7 +45,10 @@ conda activate erc
 (erc) python main.py --env_name "cartpole" --task_name swingup
 ```
 
-
+```bash
+(erc) cd CartPole
+(erc) python main.py
+```
 
 
 # Logs
@@ -58,6 +67,14 @@ Policy: ERC, Domain: cartpole, Task: swingup, Seed: 0
   4%|████                            | 35900/1000000 [02:10<1:58:59, 135.04it/s]
 ```
 
+Try ERC (based on DQN):
+
+```bash
+Algo:  ERC
+Algo: ERC, Env: CartPole-v1, Seed: 4, Epoch: 206, Total timesteps: 2000, Average Return: 9.4, Average Step: 9.4
+Algo: ERC, Env: CartPole-v1, Seed: 4, Epoch: 354, Total timesteps: 4000, Average Return: 72.6, Average Step: 72.6
+Algo: ERC, Env: CartPole-v1, Seed: 4, Epoch: 366, Total timesteps: 6000, Average Return: 242.2, Average Step: 242.2
+```
 
 Any issues with the environment should be addressed by consulting the documentation for [MuJoCO](https://github.com/openai/mujoco-py), [DMControl](https://github.com/deepmind/dm_control), and [dmc2gym](https://github.com/denisyarats/dmc2gym).
 
