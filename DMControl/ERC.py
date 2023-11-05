@@ -66,6 +66,7 @@ class ERC():
                  alpha_lr = 1e-4,
                  learn_alpha = True,
                  max_size=int(1e6),
+                 utd=1,
                  # ERC parameters
                  beta=0.005
                  ):
@@ -96,6 +97,7 @@ class ERC():
         self.batch_size = batch_size
         self.ones = torch.ones(batch_size, 1).to(device)
         self.beta = beta
+        self.utd = utd
         self.algo = "ERC"
 
         # internal buffer
@@ -145,62 +147,63 @@ class ERC():
             return Q.cpu().numpy().flatten().item()
 
     def train(self, batch_size):
-        self.total_it += 1
-        state, action, next_state, reward, not_done = self.buffer_sample(batch_size)
+        for _ in range(self.utd):
+            self.total_it += 1
+            state, action, next_state, reward, not_done = self.buffer_sample(batch_size)
 
-        # Compute critic loss
-        with torch.no_grad():
-            next_action_dist = self.actor(next_state)
-            next_action = next_action_dist.rsample()
-            next_action_log_prob = next_action_dist.log_prob(next_action).sum(-1, keepdim=True)
-            target_Q1, target_Q2 = self.critic_target(next_state, next_action)
-            target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * next_action_log_prob
-            target_Q = reward + not_done * self.discount * target_V
+            # Compute critic loss
+            with torch.no_grad():
+                next_action_dist = self.actor(next_state)
+                next_action = next_action_dist.rsample()
+                next_action_log_prob = next_action_dist.log_prob(next_action).sum(-1, keepdim=True)
+                target_Q1, target_Q2 = self.critic_target(next_state, next_action)
+                target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * next_action_log_prob
+                target_Q = reward + not_done * self.discount * target_V
 
-        current_Q1, current_Q2 = self.critic(state, action)
-        critic_loss1, critic_loss2 = F.mse_loss(current_Q1, target_Q, reduction='none'), F.mse_loss(current_Q2, target_Q, reduction='none')
+            current_Q1, current_Q2 = self.critic(state, action)
+            critic_loss1, critic_loss2 = F.mse_loss(current_Q1, target_Q, reduction='none'), F.mse_loss(current_Q2, target_Q, reduction='none')
 
-        with torch.no_grad():
-            approximation_error_1 = torch.mean(critic_loss1)
-            approximation_error_2 = torch.mean(critic_loss2)
+            with torch.no_grad():
+                approximation_error_1 = torch.mean(critic_loss1)
+                approximation_error_2 = torch.mean(critic_loss2)
 
-        erc_loss1, erc_loss2 = F.mse_loss(critic_loss1, self.ones * approximation_error_1, reduction='none'), F.mse_loss(critic_loss2, self.ones * approximation_error_2, reduction='none')
-        erc_loss1 = (torch.clip_(self.beta * erc_loss1, min=0, max=1e-2)).mean()
-        erc_loss2 = (torch.clip_(self.beta * erc_loss2, min=0, max=1e-2)).mean()
+            erc_loss1, erc_loss2 = F.mse_loss(critic_loss1, self.ones * approximation_error_1, reduction='none'), F.mse_loss(critic_loss2, self.ones * approximation_error_2, reduction='none')
+            erc_loss1 = (torch.clip_(self.beta * erc_loss1, min=0, max=1e-2)).mean()
+            erc_loss2 = (torch.clip_(self.beta * erc_loss2, min=0, max=1e-2)).mean()
 
-        critic_loss1, critic_loss2 = critic_loss1.mean(), critic_loss2.mean()
-        critic_loss_without_er = critic_loss1 + critic_loss2
-        critic_loss = critic_loss_without_er + erc_loss1 + erc_loss2
+            critic_loss1, critic_loss2 = critic_loss1.mean(), critic_loss2.mean()
+            critic_loss_without_er = critic_loss1 + critic_loss2
+            critic_loss = critic_loss_without_er + erc_loss1 + erc_loss2
 
-        # optimize critic
-        self.critic_optimizer.zero_grad()
-        critic_loss.backward()
-        self.critic_optimizer.step()
+            # optimize critic
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic_optimizer.step()
 
-        # optimize actor and alpha
-        if self.total_it % self.policy_freq == 0:
-            current_action_dist = self.actor(state)
-            current_action = current_action_dist.rsample()
-            current_action_log_prob = current_action_dist.log_prob(current_action).sum(-1, keepdim=True)
-            current_action_Q1, current_action_Q2 = self.critic(state, current_action)
-            current_action_Q = torch.min(current_action_Q1, current_action_Q2)
-            actor_loss = (self.alpha.detach() * current_action_log_prob - current_action_Q).mean()
+            # optimize actor and alpha
+            if self.total_it % self.policy_freq == 0:
+                current_action_dist = self.actor(state)
+                current_action = current_action_dist.rsample()
+                current_action_log_prob = current_action_dist.log_prob(current_action).sum(-1, keepdim=True)
+                current_action_Q1, current_action_Q2 = self.critic(state, current_action)
+                current_action_Q = torch.min(current_action_Q1, current_action_Q2)
+                actor_loss = (self.alpha.detach() * current_action_log_prob - current_action_Q).mean()
 
-            if self.learn_alpha:
-                self.log_alpha_optimizer.zero_grad()
-                alpha_loss = (self.alpha * (-current_action_log_prob - self.target_entropy).detach()).mean()
-                alpha_loss.backward()
-                self.log_alpha_optimizer.step()
-            else:
-                alpha_loss = 0
+                if self.learn_alpha:
+                    self.log_alpha_optimizer.zero_grad()
+                    alpha_loss = (self.alpha * (-current_action_log_prob - self.target_entropy).detach()).mean()
+                    alpha_loss.backward()
+                    self.log_alpha_optimizer.step()
+                else:
+                    alpha_loss = 0
 
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
-            self.actor_optimizer.step()
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor_optimizer.step()
 
-            # Update the frozen target models
-            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+                # Update the frozen target models
+                for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
     @property
     def alpha(self):

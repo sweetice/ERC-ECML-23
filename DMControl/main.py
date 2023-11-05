@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--tau", default=0.005)  # Target network update rate
     parser.add_argument("--policy_freq", default=2, type=int)
     parser.add_argument("--beta", default=0.005, type=float) # Hyper-parameter for ERC
+    parser.add_argument("--utd", default=5, type=int)
     args = parser.parse_args()
 
     env = make_env(domain_name=args.domain_name, task_name=args.task_name, seed=args.seed)
@@ -52,6 +53,7 @@ if __name__ == "__main__":
         "max_action": max_action,
         "discount": args.discount,
         "tau": args.tau,
+        "utd": args.utd
     }
 
     # Initialize policy
