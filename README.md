@@ -20,6 +20,25 @@ The file tree structure of this repository is as follows:
 1 directory, 5 files
 ```
 
+**Performance Curves**
+
+![Performance Curves](/data/ERC_performance_curves.svg)
+
+
+# Citation
+If you use this code or data for your research, please cite our paper:
+
+```angular2html
+@inproceedings{he2023eigensubspace,
+  title={Eigensubspace of Temporal-Difference Dynamics and How It Improves Value Approximation in Reinforcement Learning},
+  author={He, Qiang and Zhou, Tianyi and Fang, Meng and Maghsudi, Setareh},
+  booktitle={Joint European Conference on Machine Learning and Knowledge Discovery in Databases},
+  pages={573--589},
+  year={2023},
+  organization={Springer}
+}
+```
+
 
 # Reproduce ERC locally
 
@@ -66,16 +85,8 @@ Any issues with the environment should be addressed by consulting the documentat
 
 Our implementation is based on [pytorch sac](https://github.com/denisyarats/pytorch_sac).
 
-# Citation
-If you use this code for your research, please cite our paper:
 
-```angular2html
-@inproceedings{he2023eigensubspace,
-  title={Eigensubspace of Temporal-Difference Dynamics and How It Improves Value Approximation in Reinforcement Learning},
-  author={He, Qiang and Zhou, Tianyi and Fang, Meng and Maghsudi, Setareh},
-  booktitle={Joint European Conference on Machine Learning and Knowledge Discovery in Databases},
-  pages={573--589},
-  year={2023},
-  organization={Springer}
-}
-```
+
+# Data
+
+Feel free to use our data. Note that in our paper, for visual simplicity, the data is smoothed by a sliding window. And the given data is also the smoothed one. 
